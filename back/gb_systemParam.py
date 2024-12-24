@@ -25,7 +25,7 @@ def get_yuntaiParam() -> str:
             <username>admin</username>    // 云台用户名
             <password>Admin123</password>    // 云台密码
             <need_ir_ip>1</need_ir_ip>    // 是否需要红外设备IP地址 1: 需要 0: 不需要
-            <ip_ir>192.168.xx.xx</ip_ir>    // 大立云台 红外设备 IP地址
+            <ir_ip>192.168.xx.xx</ir_ip>    // 大立云台 红外设备 IP地址
             <username_ir>admin</username_ir>    // 大立云台 红外设备 用户名
             <password_ir>Admin123</password_ir>    // 大立云台 红外设备 密码
         </Yuntai>
@@ -63,7 +63,7 @@ def set_yuntaiParam(data: str) -> str:
             <username>admin</username>    // 云台用户名
             <password>Admin123</password>    // 云台密码
             <need_ir_ip>1</need_ir_ip>    // 是否需要红外设备IP地址 1: 需要 0: 不需要
-            <ip_ir>192.168.xx.xx</ip_ir>    // 大立云台 红外设备 IP地址
+            <ir_ip>192.168.xx.xx</ir_ip>    // 大立云台 红外设备 IP地址
             <username_ir>admin</username_ir>    // 大立云台 红外设备 用户名
             <password_ir>Admin123</password_ir>    // 大立云台 红外设备 密码
         </Yuntai>
@@ -89,12 +89,14 @@ def set_yuntaiParam(data: str) -> str:
         param_username = ''
         param_password = ''
         param_need_ir_ip = ''
-        param_ip_ir = ''
+        param_ir_ip = ''
         param_username_ir = ''
         param_password_ir = ''
         root = ET.fromstring(data)
         for child in root:
             if child.tag == 'class':
+                param_class = child.text
+            elif child.tag == 'ptzClass':
                 param_class = child.text
             elif child.tag == 'ip':
                 param_ip = child.text
@@ -104,14 +106,14 @@ def set_yuntaiParam(data: str) -> str:
                 param_password = child.text
             elif child.tag == 'need_ir_ip':
                 param_need_ir_ip = child.text
-            elif child.tag == 'ip_ir':
-                param_ip_ir = child.text
+            elif child.tag == 'ir_ip':
+                param_ir_ip = child.text
             elif child.tag == 'username_ir':
                 param_username_ir = child.text
             elif child.tag == 'password_ir':
                 param_password_ir = child.text
         # 判断参数是否完整
-        if param_class == '' or param_ip == '' or param_username == '' or param_password == '' or param_need_ir_ip == '' or param_ip_ir == '' or param_username_ir == '' or param_password_ir == '':
+        if param_class == '' or param_ip == '' or param_username == '' or param_password == '' or param_need_ir_ip == '' or param_ir_ip == '' or param_username_ir == '' or param_password_ir == '':
             return '<?xml version="1.0" encoding="UTF-8"?><Error><code>400</code><message>Bad Request</message></Error>'
         # 生成xml文件
         root = ET.Element('Yuntai')
@@ -120,13 +122,20 @@ def set_yuntaiParam(data: str) -> str:
         ET.SubElement(root, 'username').text = param_username
         ET.SubElement(root, 'password').text = param_password
         ET.SubElement(root, 'need_ir_ip').text = param_need_ir_ip
-        ET.SubElement(root, 'ip_ir').text = param_ip_ir
+        ET.SubElement(root, 'ir_ip').text = param_ir_ip
         ET.SubElement(root, 'username_ir').text = param_username_ir
         ET.SubElement(root, 'password_ir').text = param_password_ir
         tree = ET.ElementTree(root)
+        # print("xml_data:")
         # 写入文件
-        tree.write(SYSTEM_PATH + 'yuntai.xml', encoding='utf-8')
-        return '<?xml version="1.0" encoding="UTF-8"?><Yuntai><code>200</code><message>Success</message></Yuntai>'
+        # 将XML转换为字符串并增加换行和缩进
+        rough_string = ET.tostring(root, 'utf-8')
+        reparsed = minidom.parseString(rough_string)
+        pretty_xml_as_string = reparsed.toprettyxml(indent="  ")
+
+        # 写入文件
+        with open(SYSTEM_PATH + 'yuntai.xml', 'w', encoding='utf-8') as f:
+            f.write(pretty_xml_as_string)
 
     except Exception as e:
         return '<?xml version="1.0" encoding="UTF-8"?><Error><code>400</code><message>Bad Request</message></Error>'
@@ -410,7 +419,7 @@ def get_presetlistParam() -> str:
             <PresetNum>n</PresetNum>
             <Items>
                 <Item id="0" preset_name="yuntai" modle_name="xx.pt" ir_model_name="xx.pt" cla_id="0,1,2" cla_name="xx,xx,xx" 
-                score_val="0.5,0.5,0.5" object_id="0" location="0,0" image_channel="0" isRunIrModel="0" isControlPtz="0" thermal_num="3" />
+                score_val="0.5,0.5,0.5" object_id="0" ir_object_id="0" location="0,0" image_channel="0" isRunIrModel="0" isControlPtz="0" thermal_num="3" />
                 ...
             </Items>
         </PresetList>
@@ -467,6 +476,7 @@ def get_presetlistParam() -> str:
             item.set('cla_name', ','.join(cla_name))
             item.set('score_val', ','.join(score_val))
             item.set('object_id', preset_root.find('object_id').text)
+            item.set('ir_object_id', preset_root.find('ir_object_id').text)
             location = preset_root.find('location').find('Item')
             item.set('location', f"{location.get('x')},{location.get('y')}")
             item.set('image_channel', preset_root.find('image_channel').text)

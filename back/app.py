@@ -78,6 +78,7 @@ def get_ptz_info():
 def set_ptz_info():
     # 获取接口请求数据
     xml_data = request.data
+    # print(xml_data)
     # 调用系统参数模块的设置方法
     result_xml = sp.set_yuntaiParam(xml_data)
     # 返回结果
@@ -270,6 +271,7 @@ def upload_model():
 def download_model():
     try:
         filename = request.args.get('file')
+        print('filename: ', filename)
         if filename:
             file_path = sp.get_model_path(filename)
             if file_path is not None:

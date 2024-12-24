@@ -1,28 +1,34 @@
 <template>
     <div>
-        <label for="class">云台类型:</label>
-        <input type="number" v-model="ptzClass" id="class" step="1" />
+        <label for="x_reversal">X轴反向:</label>
+        <input type="number" v-model="x_reversal" id="x_reversal" step="1" />
 
-        <label for="ip">云台IP地址:</label>
-        <input type="text" v-model="ip" id="ip" />
+        <label for="y_reversal">Y轴反向:</label>
+        <input type="number" v-model="y_reversal" id="y_reversal" step="1" />
 
-        <label for="username">云台用户名:</label>
-        <input type="text" v-model="username" id="username" />
+        <label for="x_maxSpeed">X轴最大速度:</label>
+        <input type="number" v-model="x_maxSpeed" id="x_maxSpeed" step="0.1" />
 
-        <label for="password">云台密码:</label>
-        <input type="password" v-model="password" id="password" />
+        <label for="y_maxSpeed">Y轴最大速度:</label>
+        <input type="number" v-model="y_maxSpeed" id="y_maxSpeed" step="0.1" />
 
-        <label for="need_ir_ip">是否需要红外设备IP地址:</label>
-        <input type="number" v-model="need_ir_ip" id="need_ir_ip" step="1" />
+        <label for="x_kp">X轴P参数:</label>
+        <input type="number" v-model="x_kp" id="x_kp" step="0.1" />
 
-        <label for="ir_ip">红外设备IP地址:</label>
-        <input type="text" v-model="ir_ip" id="ir_ip" />
+        <label for="x_ki">X轴I参数:</label>
+        <input type="number" v-model="x_ki" id="x_ki" step="0.1" />
 
-        <label for="username_ir">红外设备用户名:</label>
-        <input type="text" v-model="username_ir" id="username_ir" />
+        <label for="x_kd">X轴D参数:</label>
+        <input type="number" v-model="x_kd" id="x_kd" step="0.1" />
 
-        <label for="password_ir">红外设备密码:</label>
-        <input type="password" v-model="password_ir" id="password_ir" />
+        <label for="y_kp">Y轴P参数:</label>
+        <input type="number" v-model="y_kp" id="y_kp" step="0.1" />
+
+        <label for="y_ki">Y轴I参数:</label>
+        <input type="number" v-model="y_ki" id="y_ki" step="0.1" />
+
+        <label for="y_kd">Y轴D参数:</label>
+        <input type="number" v-model="y_kd" id="y_kd" step="0.1" />
 
         <button @click="saveSettings">保存</button>
         <button @click="loadSettings">读取</button>
@@ -37,14 +43,16 @@ import axios from 'axios';
 export default {
     data() {
         return {
-            ptzClass: 1,
-            ip: '192.168.xx.xx',
-            username: 'admin',
-            password: 'Admin123',
-            need_ir_ip: 1,
-            ir_ip: '192.168.xx.xx',
-            username_ir: 'admin',
-            password_ir: 'Admin123',
+            x_reversal: 0,
+            y_reversal: 0,
+            x_maxSpeed: 200.0,
+            y_maxSpeed: 200.0,
+            x_kp: 100.0,
+            x_ki: 1.0,
+            x_kd: 10.0,
+            y_kp: 100.0,
+            y_ki: 1.0,
+            y_kd: 10.0,
             message: '' // 添加一个状态变量来存储提示消息
         };
     },
@@ -52,21 +60,23 @@ export default {
         async saveSettings() {
             console.log('saveSettings called');
             const settings = {
-                ptzClass: this.ptzClass,
-                ip: this.ip,
-                username: this.username,
-                password: this.password,
-                need_ir_ip: this.need_ir_ip,
-                ir_ip: this.ir_ip,
-                username_ir: this.username_ir,
-                password_ir: this.password_ir
+                x_reversal: this.x_reversal,
+                y_reversal: this.y_reversal,
+                x_maxSpeed: this.x_maxSpeed,
+                y_maxSpeed: this.y_maxSpeed,
+                x_kp: this.x_kp,
+                x_ki: this.x_ki,
+                x_kd: this.x_kd,
+                y_kp: this.y_kp,
+                y_ki: this.y_ki,
+                y_kd: this.y_kd
             };
             console.log('Saving settings', settings);
 
             // 创建XML结构
             const xmlBuilder = new XMLSerializer();
             const xmlDoc = document.implementation.createDocument('', '', null);
-            const root = xmlDoc.createElement('Yuntai');
+            const root = xmlDoc.createElement('Control');
             for (const key in settings) {
                 const element = xmlDoc.createElement(key);
                 element.textContent = settings[key];
@@ -81,7 +91,7 @@ export default {
             try {
                 const host = window.location.hostname;
                 const port = '8010'; // 你的后端端口号
-                const url = `http://${host}:${port}/api/param/ptzinfo`;
+                const url = `http://${host}:${port}/api/param/ptzcontrol`;
                 console.log(`Sending PUT request to ${url}`);
                 const response = await axios.put(url, formattedXmlString, {
                     headers: {
@@ -103,7 +113,7 @@ export default {
             try {
                 const host = window.location.hostname;
                 const port = '8010'; // 你的后端端口号
-                const url = `http://${host}:${port}/api/param/ptzinfo`;
+                const url = `http://${host}:${port}/api/param/ptzcontrol`;
                 console.log(`Sending request to ${url}`);
                 const response = await axios.get(url);
                 console.log('Response received:', response);
@@ -111,20 +121,22 @@ export default {
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(response.data, 'application/xml');
 
-                this.ptzClass = parseInt(xmlDoc.getElementsByTagName('class')[0].textContent);
-                this.ip = xmlDoc.getElementsByTagName('ip')[0].textContent;
-                this.username = xmlDoc.getElementsByTagName('username')[0].textContent;
-                this.password = xmlDoc.getElementsByTagName('password')[0].textContent;
-                this.need_ir_ip = parseInt(xmlDoc.getElementsByTagName('need_ir_ip')[0].textContent);
-                this.ir_ip = xmlDoc.getElementsByTagName('ir_ip')[0].textContent;
-                this.username_ir = xmlDoc.getElementsByTagName('username_ir')[0].textContent;
-                this.password_ir = xmlDoc.getElementsByTagName('password_ir')[0].textContent;
+                this.x_reversal = parseInt(xmlDoc.getElementsByTagName('x_reversal')[0].textContent);
+                this.y_reversal = parseInt(xmlDoc.getElementsByTagName('y_reversal')[0].textContent);
+                this.x_maxSpeed = parseFloat(xmlDoc.getElementsByTagName('x_maxSpeed')[0].textContent);
+                this.y_maxSpeed = parseFloat(xmlDoc.getElementsByTagName('y_maxSpeed')[0].textContent);
+                this.x_kp = parseFloat(xmlDoc.getElementsByTagName('x_kp')[0].textContent);
+                this.x_ki = parseFloat(xmlDoc.getElementsByTagName('x_ki')[0].textContent);
+                this.x_kd = parseFloat(xmlDoc.getElementsByTagName('x_kd')[0].textContent);
+                this.y_kp = parseFloat(xmlDoc.getElementsByTagName('y_kp')[0].textContent);
+                this.y_ki = parseFloat(xmlDoc.getElementsByTagName('y_ki')[0].textContent);
+                this.y_kd = parseFloat(xmlDoc.getElementsByTagName('y_kd')[0].textContent);
 
                 this.message = '设置已读取'; // 更新提示消息
                 setTimeout(() => this.message = '', 3000); // 3秒后清除提示消息
             } catch (error) {
-                console.error('Error loading settings:', error);
-                this.message = '读取设置失败'; // 更新提示消息
+                console.error('读取设置时出错:', error);
+                this.message = '读取设置时出错'; // 更新提示消息
                 setTimeout(() => this.message = '', 3000); // 3秒后清除提示消息
             }
         }
