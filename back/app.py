@@ -138,6 +138,30 @@ def get_preset_list():
     return Response(data_xml, mimetype='application/xml')
 
 '''
+## 读取对应编号的预制信息
+**描述**: 读取对应编号的预制信息
+**请求方法**: `GET`
+**接口路径**: `/api/param/presetInfo`
+**附加参数**: id: 预制信息编号
+'''
+@app.route('/api/param/presetInfo', methods=['GET'])
+def get_preset_info():
+    try:
+        preset_id = request.args.get('id')
+        if preset_id:
+            data_xml = sp.get_presetInfo(int(preset_id))
+            return Response(data_xml, mimetype='application/xml')
+        else:
+            err_xml = sp.get_error_xml(400, 'Missing parameter: preset_id')
+            return Response(err_xml, mimetype='application/xml')
+    except Exception as e:
+        print('get_preset_info: ', e)
+    except:
+        print('get_preset_info: Unknown error')
+    err_xml = sp.get_error_xml(500, 'Unknown error')
+    return Response(err_xml, mimetype='application/xml')
+
+'''
 **描述**: 添加新的预制信息。
 **请求方法**: `PUT`
 **接口路径**: `/api/param/presetlist/add`

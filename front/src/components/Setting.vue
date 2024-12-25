@@ -4,6 +4,7 @@
         <button @click="currentView = 'ImageOffset'">图像偏移设置</button>
         <button @click="currentView = 'PTZMoveConfig'">云台控制参数设置</button>
         <button @click="currentView = 'ModelConfig'">模型文件管理</button>
+        <button @click="currentView = 'PresetConfig'">预制信息管理</button>
         <!-- <button @click="currentView = 'OtherConfig2'">Other Config 2</button> -->
 
         <component :is="currentViewComponent"></component>
@@ -15,6 +16,7 @@ import ImageOffset from './ImageOffset.vue';
 import PTZConfig from './PTZConfig.vue';
 import PTZMoveConfig from './PTZMoveConfig.vue';
 import ModelConfig from './ModelConfig.vue';
+import PresetConfig from './PresetConfig.vue';
 // import other components here
 // import OtherConfig1 from './OtherConfig1.vue';
 // import OtherConfig2 from './OtherConfig2.vue';
@@ -25,6 +27,7 @@ export default {
         PTZConfig,
         PTZMoveConfig,
         ModelConfig,
+        PresetConfig,
         // OtherConfig1,
         // OtherConfig2
     },
@@ -44,6 +47,8 @@ export default {
                     return 'PTZMoveConfig';
                 case 'ModelConfig':
                     return 'ModelConfig';
+                case 'PresetConfig':
+                    return 'PresetConfig';
                 case 'OtherConfig1':
                     return 'OtherConfig1';
                 case 'OtherConfig2':

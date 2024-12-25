@@ -451,7 +451,7 @@ def get_presetlistParam() -> str:
             file_split = file.split('.')
             modle_path = preset_root.find('modle_path').text
             modle_name = modle_path.split('/')[-1]
-            ir_modle_path = preset_root.find('ir_modle_path').text
+            ir_modle_path = preset_root.find('ir_model_path').text
             ir_modle_name = ir_modle_path.split('/')[-1]
             
             # 解析 <classes> 元素
@@ -470,8 +470,9 @@ def get_presetlistParam() -> str:
             
             item.set('id', file_split[0])
             item.set('preset_name', preset_root.find('preset_name').text)
-            item.set('modle_name', modle_name)
-            item.set('ir_modle_name', ir_modle_name)
+            item.set('model_name', modle_name)
+            item.set('ir_model_name', ir_modle_name)
+            # print('ir_model_name:', ir_modle_name)
             item.set('cla_id', ','.join(cla_id))
             item.set('cla_name', ','.join(cla_name))
             item.set('score_val', ','.join(score_val))
@@ -491,6 +492,76 @@ def get_presetlistParam() -> str:
     except :
         print ('获取预制信息列表 未知错误')
     return '<?xml version="1.0" encoding="UTF-8"?><Error><code>500</code><message>Internal Server Error</message></Error>'
+
+def get_presetInfo(data: int) -> str:
+    '''
+    返回xml内容:
+    <?xml version="1.0" encoding="UTF-8"?>
+        <Preset>
+            <preset_name>xx</preset_name>
+            <model_name>xx.pt</model_name>
+            <ir_model_name>xx.pt</ir_model_name>
+            <classes>
+                <Item id="0" value="xx" />
+                ...
+            </classes>
+            <score>
+                <Item value="0.5" />
+                ...
+            </score>
+            <object_id>0</object_id>
+            <ir_object_id>0</ir_object_id>
+            <location>
+                <Item x="0" y="0" />
+            </location>
+            <image_channel>0</image_channel>
+            <isRunIrModel>0</isRunIrModel>
+            <isControlPtz>0</isControlPtz>
+            <tempture_num>3</tempture_num>
+        </Preset>
+    '''
+    # 打开对应的文件
+    try:
+        filename = PRESET_PATH + str(data) + '.xml'
+        tree = ET.parse(filename)
+        preset_root = tree.getroot()
+        # 读取对应的信息
+        modle_path = preset_root.find('modle_path').text
+        modle_name = modle_path.split('/')[-1]
+        ir_modle_path = preset_root.find('ir_model_path').text
+        ir_modle_name = ir_modle_path.split('/')[-1]
+        # 生成xml文件
+        root = ET.Element('Preset')
+        ET.SubElement(root, 'preset_name').text = preset_root.find('preset_name').text
+        ET.SubElement(root, 'model_name').text = modle_name
+        ET.SubElement(root, 'ir_model_name').text = ir_modle_name
+
+        classes = ET.SubElement(root, 'classes')
+        for item in preset_root.find('classes').findall('Item'):
+            ET.SubElement(classes, 'Item', id=item.get('id'), value=item.get('value'))
+
+        score = ET.SubElement(root, 'score')
+        for item in preset_root.find('score').findall('Item'):
+            ET.SubElement(score, 'Item', value=item.get('value'))
+
+        ET.SubElement(root, 'object_id').text = preset_root.find('object_id').text
+        ET.SubElement(root, 'ir_object_id').text = preset_root.find('ir_object_id').text
+
+        location = ET.SubElement(root, 'location')
+        for item in preset_root.find('location').findall('Item'):
+            ET.SubElement(location, 'Item', x=item.get('x'), y=item.get('y'))
+
+        ET.SubElement(root, 'image_channel').text = preset_root.find('image_channel').text
+        ET.SubElement(root, 'isRunIrModel').text = preset_root.find('isRunIrModel').text
+        ET.SubElement(root, 'isControlPtz').text = preset_root.find('isControlPtz').text
+        ET.SubElement(root, 'tempture_num').text = preset_root.find('tempture_num').text
+
+        return ET.tostring(root, encoding='utf-8').decode('utf-8')
+
+    except Exception as e:
+        return '<?xml version="1.0" encoding="UTF-8"?><Error><code>404</code><message>File not found</message></Error>'
+    except:
+        return '<?xml version="1.0" encoding="UTF-8"?><Error><code>500</code><message>Internal Server Error</message></Error>'
 
 def add_presetInfo(data: str) -> str:
     '''
@@ -540,6 +611,7 @@ def add_presetInfo(data: str) -> str:
         param_classes = []
         param_score = []
         param_object_id = ''
+        param_ir_object_id = ''
         param_location = None
         param_image_channel = ''
         param_isRunIrModel = ''
@@ -569,6 +641,8 @@ def add_presetInfo(data: str) -> str:
                         param_score.append(value)
             elif child.tag == 'object_id':                      # 检测对象ID
                 param_object_id = child.text
+            elif child.tag == 'ir_object_id':
+                param_ir_object_id = child.text
             elif child.tag == 'location':                       # 搜索位置
                 param_location = (0, 0)
                 # 解析items
@@ -588,7 +662,7 @@ def add_presetInfo(data: str) -> str:
         # 判断参数是否完整
         if (param_preset_name == '' or param_modle_path == '' or param_ir_modle_path == '' or len(param_classes) == 0 or len(param_score) == 0 
                 or param_object_id == '' or param_location == None or param_image_channel == '' or param_isRunIrModel == ''
-                or param_isControlPtz == '' or param_tempture_num == ''):
+                or param_isControlPtz == '' or param_tempture_num == '' or param_ir_object_id == ''):
             return '<?xml version="1.0" encoding="UTF-8"?><Error><code>400</code><message>Bad Request</message></Error>'
         # 获取预制信息文件列表 从而生成新文件的名字
         file_list = os.listdir(PRESET_PATH)
@@ -623,6 +697,7 @@ def add_presetInfo(data: str) -> str:
         for i in range(len(param_score)):
             ET.SubElement(score, 'Item', value=param_score[i])
         ET.SubElement(root, 'object_id').text = param_object_id
+        ET.SubElement(root, 'ir_object_id').text = param_ir_object_id
         location = ET.SubElement(root, 'location')
         ET.SubElement(location, 'Item', x=str(param_location[0]), y=str(param_location[1]))
         ET.SubElement(root, 'image_channel').text = param_image_channel
