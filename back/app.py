@@ -7,12 +7,13 @@ from markupsafe import escape
 from flask import request
 from flask import Response
 from flask import send_file
+from flask import stream_with_context
 
 import sys
 import os
 sys.path.append(os.getcwd())
 import back.gb_systemParam as sp
-
+import subprocess
 import cv2
 
 debug = True
@@ -56,6 +57,25 @@ def get_threads_load():
 # @app.route('/', methods=["GET"])
 # def index():
 #     return "Welcome to API v1, try /hello."
+
+# @app.route('/stream')
+# def stream():
+#     rtsp_url = "rtsp://192.168.31.50:8554/teststream"
+#     command = [
+#         "ffmpeg",
+#         "-i", rtsp_url,
+#         "-vcodec", "h264",  # 转码为 H.264
+#         "-acodec", "aac",
+#         "-f", "flv",  # 输出格式为 FLV
+#         '-r', "20",  # 帧率
+#         "pipe:1"  # 输出到标准流
+#     ]
+#     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+#     return Response(
+#         stream_with_context(process.stdout),
+#         content_type="video/x-flv"
+#     )
 
 
 '''
@@ -197,16 +217,16 @@ def remove_preset():
     err_xml = sp.get_error_xml(500, 'Unknown error')
     return Response(err_xml, mimetype='application/xml')
 
-'''
-**描述**: 设置预制信息列表。
-**请求方法**: `PUT`
-**接口路径**: `/api/param/presetlist`
-'''
-@app.route('/api/param/presetlist', methods=['PUT'])
-def set_preset_list():
-    xml_data = request.data
-    result_xml = sp.set_presetlistParam(xml_data)
-    return Response(result_xml, mimetype='application/xml')
+# '''
+# **描述**: 设置预制信息列表。
+# **请求方法**: `PUT`
+# **接口路径**: `/api/param/presetlist`
+# '''
+# @app.route('/api/param/presetlist', methods=['PUT'])
+# def set_preset_list():
+#     xml_data = request.data
+#     result_xml = sp.set_presetlistParam(xml_data)
+#     return Response(result_xml, mimetype='application/xml')
 
 '''
 **描述**: 更新指定的预制信息。

@@ -570,8 +570,8 @@ def add_presetInfo(data: str) -> str:
         <?xml version="1.0" encoding="UTF-8"?>
         <Preset>
             <preset_name>xx</preset_name>
-            <modle_path>xx.pt</modle_path>
-            <ir_modle_path>xx.pt</ir_modle_path>
+            <model_path>xx.pt</model_path>
+            <ir_model_path>xx.pt</ir_model_path>
             <classes>
                 <Item id="0" value="xx" />
                 ...
@@ -581,6 +581,7 @@ def add_presetInfo(data: str) -> str:
                 ...
             </score>
             <object_id>0</object_id>
+            <ir_object_id>0</ir_object_id>
             <location>
                 <Item x="0" y="0" />
             </location>
@@ -621,9 +622,9 @@ def add_presetInfo(data: str) -> str:
         for child in root:
             if child.tag == 'preset_name':                      # 预置信息名称
                 param_preset_name = child.text
-            elif child.tag == 'modle_path':                     # 模型路径
+            elif child.tag == 'model_path':                     # 模型路径
                 param_modle_path = child.text
-            elif child.tag == 'ir_modle_path':                  # 红外模型路径
+            elif child.tag == 'ir_model_path':                  # 红外模型路径
                 param_ir_modle_path = child.text
             elif child.tag == 'classes':                        # 类别
                 param_classes = []
@@ -689,13 +690,13 @@ def add_presetInfo(data: str) -> str:
         root = ET.Element('Preset')
         ET.SubElement(root, 'preset_name').text = param_preset_name
         ET.SubElement(root, 'modle_path').text = MODEL_PATH + param_modle_path
-        ET.SubElement(root, 'ir_modle_path').text = MODEL_PATH + param_ir_modle_path
+        ET.SubElement(root, 'ir_model_path').text = MODEL_PATH + param_ir_modle_path
         classes = ET.SubElement(root, 'classes')
         for i in range(len(param_classes)):
             ET.SubElement(classes, 'Item', id=str(i), value=param_classes[i])
         score = ET.SubElement(root, 'score')
         for i in range(len(param_score)):
-            ET.SubElement(score, 'Item', value=param_score[i])
+            ET.SubElement(score, 'Item', id=str(i), value=param_score[i])
         ET.SubElement(root, 'object_id').text = param_object_id
         ET.SubElement(root, 'ir_object_id').text = param_ir_object_id
         location = ET.SubElement(root, 'location')
@@ -744,14 +745,19 @@ def remove_presetInfo(data: int) -> str:
             file_split = file.split('.')
             if len(file_split) != 2:
                 file_list.remove(file)
+                print('remove file: ', file, ' because of len(file_split) != 2')
                 continue
             if file_split[1] != 'xml':
                 file_list.remove(file)
+                print('remove file: ', file, ' because of file_split[1] != xml')
                 continue
             if not file_split[0].isdigit():
                 file_list.remove(file)
+                print('remove file: ', file, ' because of not file_split[0].isdigit()')
                 continue
-        # 重新排序
+        # 按照文件名字重新排序
+        file_list.sort(key=lambda x: int(x.split('.')[0]))
+        # 重新命名
         for i in range(len(file_list)):
             file_id = int(file_list[i].split('.')[0])
             if file_id > data:
@@ -887,6 +893,7 @@ def update_presetInfo(id :int, data: str) -> str:
                 ...
             </score>
             <object_id>0</object_id>
+            <ir_object_id>0</ir_object_id>
             <location>
                 <Item x="0" y="0" />
             </location>
@@ -913,6 +920,7 @@ def update_presetInfo(id :int, data: str) -> str:
         # 判断是否存在该文件
         if not os.path.exists(PRESET_PATH + str(id) + '.xml'):
             return '<?xml version="1.0" encoding="UTF-8"?><Error><code>404</code><message>File not found</message></Error>'
+        print('update_presetInfo:', data)
         # 解析xml数据
         param_preset_name = ''
         param_modle_name = ''
@@ -920,6 +928,7 @@ def update_presetInfo(id :int, data: str) -> str:
         param_classes = []
         param_score = []
         param_object_id = ''
+        param_ir_object_id = ''
         param_location = None
         param_image_channel = ''
         param_isRunIrModel = ''
@@ -929,9 +938,9 @@ def update_presetInfo(id :int, data: str) -> str:
         for child in root:
             if child.tag == 'preset_name':                    # 预置信息名称
                 param_preset_name = child.text
-            elif child.tag == 'modle_path':                     # 模型路径
+            elif child.tag == 'model_path':                     # 模型路径
                 param_modle_name = child.text
-            elif child.tag == 'ir_modle_path':                  # 红外模型路径
+            elif child.tag == 'ir_model_path':                  # 红外模型路径
                 param_ir_modle_name = child.text
             elif child.tag == 'classes':                        # 类别
                 param_classes = []
@@ -949,6 +958,8 @@ def update_presetInfo(id :int, data: str) -> str:
                         param_score.append(value)
             elif child.tag == 'object_id':                      # 检测对象ID
                 param_object_id = child.text
+            elif child.tag == 'ir_object_id':                   # 红外检测对象ID
+                param_ir_object_id = child.text
             elif child.tag == 'location':                       # 搜索位置
                 param_location = (0, 0)
                 # 解析items
@@ -965,21 +976,34 @@ def update_presetInfo(id :int, data: str) -> str:
                 param_isControlPtz = child.text
             elif child.tag == 'tempture_num':                   # 测温次数
                 param_tempture_num = child.text
-        # 判断参数是否完整
-        if param_preset_name == '' or param_modle_name == '' or len(param_classes) == 0 or len(param_score) == 0 or param_object_id == '' or param_location == None or param_image_channel == '' or param_tempture_num == '':
-            return '<?xml version="1.0" encoding="UTF-8"?><Error><code>400</code><message>Bad Request</message></Error>'
+        # # 判断参数是否完整
+        # if param_preset_name == '' or param_modle_name == '' or len(param_classes) == 0 or len(param_score) == 0 or param_object_id == '' or param_ir_object_id or param_location == None or param_image_channel == '' or param_tempture_num == '' or param_isRunIrModel == '' or param_isControlPtz == '' or param_ir_modle_name == '':
+        #     print('param_preset_name:', param_preset_name)
+        #     print('param_modle_name:', param_modle_name)
+        #     print('param_classes:', len(param_classes))
+        #     print('param_score:', len(param_score))
+        #     print('param_object_id:', param_object_id)
+        #     print('param_ir_object_id:', param_ir_object_id)
+        #     print('param_location:', param_location)
+        #     print('param_image_channel:', param_image_channel)
+        #     print('param_tempture_num:', param_tempture_num)
+        #     print('param_isRunIrModel:', param_isRunIrModel)
+        #     print('param_isControlPtz:', param_isControlPtz)
+        #     print('param_ir_modle_name:', param_ir_modle_name)
+        #     return '<?xml version="1.0" encoding="UTF-8"?><Error><code>400</code><message>Bad Request</message></Error>'
         # 生成xml文件
         root = ET.Element('Preset')
         ET.SubElement(root, 'preset_name').text = param_preset_name
         ET.SubElement(root, 'modle_path').text = MODEL_PATH + param_modle_name
-        ET.SubElement(root, 'ir_modle_path').text = MODEL_PATH + param_ir_modle_name
+        ET.SubElement(root, 'ir_model_path').text = MODEL_PATH + param_ir_modle_name
         classes = ET.SubElement(root, 'classes')
         for i in range(len(param_classes)):
             ET.SubElement(classes, 'Item', id=str(i), value=param_classes[i])
         score = ET.SubElement(root, 'score')
         for i in range(len(param_score)):
-            ET.SubElement(score, 'Item', value=param_score[i])
+            ET.SubElement(score, 'Item', id=str(i), value=param_score[i])
         ET.SubElement(root, 'object_id').text = param_object_id
+        ET.SubElement(root, 'ir_object_id').text = param_ir_object_id
         location = ET.SubElement(root, 'location')
         ET.SubElement(location, 'Item', x=str(param_location[0]), y=str(param_location[1]))
         ET.SubElement(root, 'image_channel').text = param_image_channel
@@ -988,7 +1012,13 @@ def update_presetInfo(id :int, data: str) -> str:
         ET.SubElement(root, 'tempture_num').text = param_tempture_num
         tree = ET.ElementTree(root)
         # 写入文件
-        tree.write(PRESET_PATH + str(id) + '.xml', encoding='utf-8')
+        # 将XML转换为字符串并增加换行和缩进
+        rough_string = ET.tostring(root, 'utf-8')
+        reparsed = minidom.parseString(rough_string)
+        with open(PRESET_PATH + str(id) + '.xml', 'w') as f:
+            f.write(reparsed.toprettyxml(indent='    '))
+            
+        
         return '<?xml version="1.0" encoding="UTF-8"?><Preset><code>200</code><message>Success</message></Preset>'
     except Exception as e:
         print ('更新预制信息错误:', e)

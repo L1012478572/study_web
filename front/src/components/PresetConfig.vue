@@ -33,7 +33,7 @@
         </div>
         <button @click="addPreset">增加预制信息</button>
         <p v-if="message" class="message">{{ message }}</p>
-        <presetEditModal v-if="showModal" :presetId="selectedPresetId" @close="showModal = false" />
+        <presetEditModal v-if="showModal" :presetId="selectedPresetId" @close="handleModalClose" />
     </div>
 </template>
 
@@ -112,9 +112,21 @@ export default {
             this.selectedPresetId = id;
             this.showModal = true;
         },
-        deletePreset(id) {
-            // 删除预制信息功能暂留
-            console.log('删除预制信息', id);
+        async deletePreset(id) {
+            try {
+                const host = window.location.hostname;
+                const port = '8010'; // 你的后端端口号
+                const url_send = `http://${host}:${port}/api/param/presetlist/remove`;
+                await axios.put(url_send, null, {
+                    params: { id }
+                });
+                console.log('预制信息删除成功', id);
+                this.fetchPresetList(); // 删除后刷新预制信息列表
+            } catch (error) {
+                console.error('删除预制信息时出错:', error);
+                this.message = '删除预制信息时出错';
+                setTimeout(() => this.message = '', 3000); // 3秒后清除提示消息
+            }
         },
         addPreset() {
             // 增加预制信息功能暂留
@@ -129,6 +141,10 @@ export default {
             if (this.currentPage < this.totalPages) {
                 this.currentPage++;
             }
+        },
+        handleModalClose() {
+            this.showModal = false;
+            this.fetchPresetList();
         }
     },
     mounted() {
