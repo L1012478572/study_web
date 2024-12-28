@@ -1,8 +1,9 @@
-rtsp://192.168.31.185:8554/test
+sudo taskset -c 0-3 nice -n -10 ./mediamtx
+
 
 wget https://github.com/aler9/rtsp-simple-server/releases/latest/download/rtsp-simple-server_linux_arm64v8.tar.gz
 
-ffmpeg -re -i output_extended.avi -c:v libx264 -preset ultrafast -tune zerolatency -c:a aac -f rtsp rtsp://localhost:8554/mystream
+ffmpeg -re -i output_extended.avi -c:v libx264 -preset ultrafast -tune zerolatency -c:a aac -f rtsp rtsp://localhost:8554/mteststream
 
 ffmpeg -re -i output_extended.avi -c:v copy -c:a copy -f rtsp rtsp://localhost:8554/mystream
 
